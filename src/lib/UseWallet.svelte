@@ -1,32 +1,64 @@
 <script lang="ts" context="module">
-	import { DeflyWalletConnect } from '@blockshake/defly-connect';
+	import { WalletConnector } from '../../packages/wallet-connect';
 	import { get, writable } from 'svelte/store';
+	import { kibisis } from '@txnlab/use-wallet';
 
-	export const deflyWallet = new DeflyWalletConnect({});
+	export const deflyWallet = new WalletConnector({});
 	export const connectedAccount = writable<string>();
 	export const connectedWallet = writable<'wc' | 'kibisis'>();
+	export const isKibisisInstalled = writable(false);
 
 	connectedWallet.subscribe((walletType) => {
 		if (!browser || !walletType) return;
 		localStorage.setItem('defaultWallet', walletType);
 	});
 
+	export const getKibisisClient = async (init = false) => {
+		let count = 0;
+		while (count++ < 3) {
+			const resp = await kibisis.init({
+				algodOptions: algodClientOpts,
+				network: 'testnet',
+			});
+
+			if (init && localStorage.getItem('defaultWallet') === 'kibisis') {
+				const resp_ = await resp?.reconnect(() => {
+					walletDisconnect();
+				});
+				if (resp_?.['accounts']?.length) {
+					walletConnect(true);
+				}
+			}
+			if (resp) {
+				isKibisisInstalled.set(true);
+				return resp;
+			}
+		}
+		throw Error('failed to get kibisis client');
+	};
+
 	export async function walletDisconnect() {
-		await deflyWallet.disconnect();
+		if (get(connectedWallet) === 'kibisis') {
+			const client = await getKibisisClient();
+			await client?.disconnect();
+		} else {
+			await deflyWallet.disconnect();
+		}
 		connectedAccount.set(<any>undefined);
 		connectedWallet.set(<any>undefined);
 		localStorage.removeItem('defaultWallet');
 	}
 
-	export async function walletConnect(kibisis = browser ? localStorage.getItem('defaultWallet') === 'kibisis' : false) {
-		if (kibisis) {
-			if (!window['algorand']?.wallets?.[0]) return;
-			const { accounts } = await window['algorand'].enable({
-				id: 'kibisis',
-				genesisHash: 'IXnoWtviVVJW5LGivNFc0Dq14V3kqaXuK2u5OQrdVZo=',
+	export async function walletConnect(
+		isKibisis = browser ? localStorage.getItem('defaultWallet') === 'kibisis' : false
+	) {
+		if (isKibisis) {
+			const client = await getKibisisClient();
+			const wallet = await client?.connect(() => {
+				connectedAccount.set('');
 			});
-			if (accounts?.[0]?.address) {
-				connectedAccount.set(accounts?.[0].address);
+			if (wallet?.accounts?.[0]?.address) {
+				connectedAccount.set(wallet?.accounts?.[0]?.address);
 				connectedWallet.set('kibisis');
 			}
 		} else {
@@ -42,15 +74,33 @@
 		try {
 			if (kibisis) {
 				const signed: Uint8Array[] = [];
+				const client = await getKibisisClient();
 				for (const group of txnGroups) {
 					const txns: { txn: string }[] = [];
 					for (const txn of group) {
 						txns.push({ txn: Buffer.from(algosdk.encodeUnsignedTransaction(txn)).toString('base64') });
 					}
-					const { stxns } = await window['algorand'].signTxns({
-						txns: txns,
-					});
-					signed.push(...stxns.map((stxn) => Uint8Array.from(Buffer.from(stxn, 'base64'))));
+
+					let count = 0;
+					while (count++ < 3) {
+						try {
+							const resp = await client?.signTransactions(
+								[get(connectedAccount)],
+								group.map((txn) => txn.toByte()),
+								group.map((_, i) => i),
+								true
+							);
+
+							if (resp) {
+								signed.push(...resp);
+								break;
+							}
+						} catch (e: any) {
+							if (e['code'] !== 4002) {
+								throw e;
+							}
+						}
+					}
 				}
 
 				return signed;
@@ -73,6 +123,7 @@
 		txnGroups: algosdk.Transaction[][],
 		kibisis = get(connectedWallet) === 'kibisis'
 	) {
+		console.log('signing and sending txns...');
 		const signed = await signTransactions(txnGroups, kibisis);
 
 		const groups = txnGroups.map((group) => {
@@ -99,12 +150,13 @@
 			}
 		}
 
+		console.log('sent txns...');
 		return true;
 	}
 
 	export function getTransactionSignerAccount(kibisis = get(connectedWallet) === 'kibisis') {
 		const account = get(connectedAccount);
-		if (!account) return;
+		if (!account) return <{ addr: string; signer }>(<unknown>undefined);
 		const signer: algosdk.TransactionSigner = (txnGroup: algosdk.Transaction[], indexesToSign: number[]) => {
 			return signTransactions([txnGroup], kibisis);
 		};
@@ -120,11 +172,13 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import LogoutIcon from 'svelte-star/dist/md/MdPowerSettingsNew.svelte';
-	import { isDarkTheme } from './stores';
-
-	let usingKibisisWallet = false;
+	import { isDarkTheme } from '../lib/stores';
+	import { algodClientOpts } from './_shared';
 
 	onMount(async () => {
+		try {
+			await getKibisisClient(); // trigger check if kibisis is installed
+		} catch (e) {}
 		if (!$connectedAccount) {
 			const defaultWallet = localStorage.getItem('defaultWallet');
 			if (defaultWallet) {
@@ -136,44 +190,37 @@
 				}
 			}
 		}
-
-		setTimeout(() => {
-			usingKibisisWallet = !!window['algorand']?.wallets.find((w) => w.id === 'kibisis');
-		}, 1000);
 	});
 </script>
 
 {#if $connectedAccount}
 	<div class="flex">
-		<div class="flex justify-between w-full">
-			<li on:click={() => walletDisconnect()} on:keydown>
+		<div class="flex justify-between items-center w-full bg-red-">
+			<div on:click={() => walletDisconnect()} on:keydown>
 				<a class="flex items-center text-[1rem] gap-2" href={null} tabindex="0">
-					<span class="block h-6"><LogoutIcon /></span>
-					<span class="flex flex-col">
-						<span class="">{$connectedAccount.slice(0, 6)}...{$connectedAccount.slice(-6)}</span>
+					<span class="block h-6 w-6"><LogoutIcon /></span>
+				</a>
+			</div>
+			<div
+				class="relative"
+				on:click={(e) => {
+					const input = document.createElement('input');
+					document.body.prepend(input);
+					input.style.position = 'fixed';
+					input.style.bottom = '-1000px';
+					input.style.left = '-1000px';
+					input.focus();
+					input.remove();
+					navigator.clipboard.writeText($connectedAccount);
+				}}
+				on:keydown
+			>
+				<a class="flex items-center text-[1rem] gap-2" href={null} tabindex="0">
+					<span class="flex flex-grow w-full flex-col">
+						<span class="">{$connectedAccount.slice(0, 5)}...{$connectedAccount.slice(-5)}</span>
 					</span>
 				</a>
-			</li>
-			<li>
-				<label class="swap swap-rotate">
-					<input
-						type="checkbox"
-						class="theme-controller"
-						bind:checked={$isDarkTheme}
-						on:change={() => localStorage.setItem('theme', $isDarkTheme ? 'dark' : 'light')}
-					/>
-					<svg class="swap-on fill-current w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-						<path
-							d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,6.34Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"
-						/>
-					</svg>
-					<svg class="swap-off fill-current w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-						<path
-							d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z"
-						/>
-					</svg>
-				</label>
-			</li>
+			</div>
 		</div>
 	</div>
 {:else}

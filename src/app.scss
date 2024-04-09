@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap');
+
+:root {
+	--primary-color: #ffff66;
+	--secondary-color: #333333;
+	background: #333322;
+	// background-image: linear-gradient(to bottom, #ffff66 30%, #333333);
+}
+
+html {
+	padding: 0;
+	margin: 0;
+}
+
+body {
+	min-height: 100vh;
+	margin: 0;
+	padding: 0;
+	font-family: 'Rubik', sans-serif;
+	font-optical-sizing: auto;
+}
+
+// html:before {
+// 	content: '';
+// 	background-color: #ffff66;
+// 	position: fixed;
+// 	top: 0px;
+// 	left: 0;
+// 	right: 0;
+// 	height: 400px;
+// 	z-index: -100;
+// }
+
+* {
+	box-sizing: border-box;
+}
+
+input[type='number'].no-arrows::-webkit-inner-spin-button,
+input[type='number'].no-arrows::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}

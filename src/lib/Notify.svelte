@@ -1,5 +1,5 @@
 <script lang="ts" context="module">
-	import { writable, get } from 'svelte/store';
+	import { writable } from 'svelte/store';
 	type Notification = {
 		id: number;
 		message: string;
@@ -62,7 +62,7 @@
 	// 				break;
 	// 		}
 	// 	}
-	// }, 1000);
+	// }, 500);
 
 	// addNotification('info', 'Hello World');
 	// addNotification(
@@ -92,45 +92,46 @@
 </script>
 
 <script lang="ts">
-	import CloseIcon from 'svelte-star/dist/md/MdClose.svelte';
 	import InfoIcon from 'svelte-star/dist/md/MdInfo.svelte';
 	import WarnIcon from 'svelte-star/dist/md/MdWarning.svelte';
 	import ErrorIcon from 'svelte-star/dist/md/MdError.svelte';
 	import SuccessIcon from 'svelte-star/dist/md/MdCheckCircle.svelte';
+	import MdCloseIcon from 'svelte-star/dist/md/MdClose.svelte';
 </script>
 
-<div
-	class="fixed top-10 right-10 min-w-[250px] min-h-[40px] text-primary-content rounded-btn flex flex-col gap-2 items-end"
->
-	{#each $notifications as notification}
-		<div
-			class="notification items-start justify-between relative bg-primary rounded-btn p-2 text-wrap max-w-[250px] {notification.type}"
-		>
-			<button
-				on:click={() => notification.remove()}
-				class="close bg-[red] btn-sm w-10 h-10 scale-[0.5] p-0 absolute top-[-5px] right-[-8px]"
-			>
-				<CloseIcon />
-			</button>
-			<span class="icon">
-				{#if notification.type === 'info'}
-					<InfoIcon />
-				{:else if notification.type === 'warn'}
-					<WarnIcon />
-				{:else if notification.type === 'error'}
-					<ErrorIcon />
-				{:else if notification.type === 'pending'}
-					<span class="loading w-5 ml-[0.17rem] mt-[0.17rem]" />
-				{:else if notification.type === 'success'}
-					<SuccessIcon />
-				{/if}
-			</span>
-			<span class="message">
-				{notification.message.slice(0, 100)}{notification.message.length > 100 ? '...' : ''}
-			</span>
-		</div>
-	{/each}
-</div>
+{#if $notifications.length}
+	<div
+		class="fixed z-[2000] left-[50%] translate-x-[-50%] top-[10px] min-w-[250px] min-h-[40px] rounded-btn flex flex-col gap-4 items-end"
+	>
+		{#each $notifications as notification}
+			<div class="notification relative bg-primary rounded-btn p-2 text-wrap max-w-[250px] {notification.type}">
+				<div class="icon">
+					<span>
+						{#if notification.type === 'info'}
+							<InfoIcon />
+						{:else if notification.type === 'warn'}
+							<WarnIcon />
+						{:else if notification.type === 'error'}
+							<ErrorIcon />
+						{:else if notification.type === 'pending'}
+							<span class="loading w-5 ml-[0.17rem] mt-[0.17rem]" />
+						{:else if notification.type === 'success'}
+							<SuccessIcon />
+						{/if}
+					</span>
+				</div>
+				<div class="message">
+					{notification.message.slice(0, 100)}{notification.message.length > 100 ? '...' : ''}
+				</div>
+				<div class="icon close">
+					<button on:click={() => notification.remove()}>
+						<MdCloseIcon />
+					</button>
+				</div>
+			</div>
+		{/each}
+	</div>
+{/if}
 
 <style>
 	@keyframes fade {
@@ -144,33 +145,64 @@
 	.notification {
 		animation: fade 1s forwards;
 		background: var(--notification-bg);
-		padding-right: 2rem;
-		padding-left: 2.5rem;
+		padding: 2rem;
+		min-width: 270px;
+		padding: 0.75rem;
+		display: flex;
+		gap: 0.5rem;
+		box-shadow: 0 0 3px #666633;
 	}
-	.notification > .close {
-		background: var(--notification-bg);
+	.notification > .icon.close {
+		background: transparent;
+		display: flex;
+		align-items: start;
 	}
 	.notification > .icon {
-		position: absolute;
-		top: 0.5rem;
-		left: 0.5rem;
-		height: 1.5rem;
-		width: 1.5rem;
+		color: var(--notification-color);
+		border-radius: 4rem;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	.icon > * {
+		display: flex;
+		width: 2rem;
+		height: 2rem;
+	}
+	.icon.close {
+		--notification-color: #fff;
+	}
+	.notification .message {
+		flex-grow: 1;
+		width: 100%;
+		display: flex;
+		justify-content: start;
+		align-items: center;
+		color: #fff;
 	}
 	.notification.info {
-		--notification-bg: rgb(0, 110, 255);
+		--notification-bg: #222211;
+		--notification-color: #6666ff;
+		color: black;
 	}
 	.notification.error {
-		--notification-bg: red;
+		--notification-bg: #222211;
+		--notification-color: #ff6666;
+		color: black;
 	}
 	.notification.warn {
-		--notification-bg: orange;
-        color: black;
+		--notification-bg: #222211;
+		--notification-color: #f3c04a;
+		color: black;
 	}
 	.notification.pending {
-		--notification-bg: rgb(0, 110, 255);
+		--notification-bg: #222211;
+		--notification-color: #ffff66;
+		color: black;
 	}
 	.notification.success {
-		--notification-bg: rgb(54, 169, 54);
+		--notification-bg: #222211;
+		--notification-color: #77cc77;
+		color: black;
 	}
 </style>

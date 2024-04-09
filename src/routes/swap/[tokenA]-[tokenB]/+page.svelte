@@ -1,51 +1,85 @@
 <script lang="ts">
-	import { type Token, knownTokens } from '$lib';
-	import Dropdown from '$lib/Dropdown.svelte';
+	import { type Token, knownTokens, TokenType, knownPools, type Pool } from '$lib';
 	import { getStores } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { balanceString, getArc200Balance, getBalance, viaAppId } from '$lib/_shared';
-	import { currentAppId } from '$lib/_deployed';
-	import { simulateHowMuch } from '$lib/howMuch';
+	import { calculateInTokens, calculateOutTokens } from '$lib/howMuch';
 	import { connectedAccount } from '$lib/UseWallet.svelte';
 	import { pageContentRefresh } from '$lib/utils';
-	import { onNumberKeyPress } from '$lib/inputs';
-	import MdSwapVert from 'svelte-star/dist/md/MdSwapVert.svelte';
-	import ContractMethods from '$lib/contractMethods';
+	import { onChainStateWatcher, watchArc200Balance } from '$lib/stores/onchain';
+	import algosdk from 'algosdk';
+	import { AlgoArc200PoolConnector } from '$lib/AlgoArc200PoolConnector';
+	import { convertDecimals } from '$lib/numbers';
+	import { lastActiveSwapPair } from '$lib/stores';
+	import SwapForm from '$lib/components/form/SwapForm.svelte';
+	import { openModal } from '$lib/components/modal/Modal.svelte';
+	import ConnectWallet from '$lib/components/modal/ConnectWallet.svelte';
 
 	const { page } = getStores();
-	const tokenA = knownTokens.find((token) => token.ticker === $page.params.tokenA);
-	const tokenB = knownTokens.find((token) => token.ticker === $page.params.tokenB);
-	const slippage = 0.01;
+	const tokenA = <Token>$knownTokens.find((token) => token.ticker === $page.params.tokenA);
+	const tokenB = <Token>$knownTokens.find((token) => token.ticker === $page.params.tokenB);
 
-	let tokens: [Token, Token] | undefined = undefined;
+	let voiToken: Token = <any>undefined;
+	let arc200Token: Token = <any>undefined;
+	let matchedPool: Pool = <any>undefined;
 
-	onMount(() => {
-		if (!tokenA || !tokenB) {
-			goto(`/swap/${knownTokens[0].ticker}-${knownTokens[1].ticker}`, { replaceState: true });
-			return;
-		}
-		tokens = [tokenA, tokenB];
-	});
+	if (tokenA?.ticker === 'VOI' && tokenB?.type === TokenType.ARC200) {
+		voiToken = tokenA;
+		arc200Token = tokenB;
+	} else if (tokenB?.ticker === 'VOI' && tokenA?.type === TokenType.ARC200) {
+		voiToken = tokenB;
+		arc200Token = tokenA;
+	} else if (browser) {
+		goto(`/`);
+	}
+
+	if (voiToken && arc200Token) {
+		const match = $knownPools.find((pool) => pool.arc200Asset.assetId === arc200Token.id);
+		if (match) matchedPool = match;
+	}
+
+	if (!matchedPool) {
+		throw Error('pool not found');
+	}
+
+	if (tokenA.ticker && tokenB.ticker) {
+		lastActiveSwapPair.set(`${tokenA.ticker}-${tokenB.ticker}`);
+	}
+
+	let tokens: [Token, Token] | undefined = [tokenA, tokenB];
+
+	let slippage = browser ? JSON.parse(localStorage.getItem('slippage') ?? '0.025') : 0.025;
+
+	$: browser && localStorage.setItem('slippage', JSON.stringify(slippage));
+
+	const connectedUserState = onChainStateWatcher.getAccountWatcher($connectedAccount);
+	const currentPoolState = onChainStateWatcher.getAccountWatcher(algosdk.getApplicationAddress(matchedPool.poolId));
+
+	const userArc200Balance = watchArc200Balance(arc200Token.id, $connectedAccount);
+	const poolArc200Balance = watchArc200Balance(arc200Token.id, algosdk.getApplicationAddress(matchedPool.poolId));
+
+	$: loaded = $poolArc200Balance && $currentPoolState.amount;
 
 	function setSelectedToken(token: Token, index: number) {
-		if (!tokens) return;
-		const lastSelected = tokens[index];
-		if (lastSelected.ticker !== token.ticker) {
-			updateRoute(token, tokens[index]);
+		if (index === 0) {
+			if (tokenA.ticker !== token.ticker) {
+				updateRoute(token, tokenB);
+			}
+		} else {
+			if (tokenB.ticker !== token.ticker) {
+				updateRoute(tokenA, token);
+			}
 		}
 	}
 
-	function updateRoute(tokenA: Token, tokenB: Token) {
-		if (!tokens) return;
-		if (tokens[0].ticker !== tokenA.ticker || tokens[1].ticker !== tokenB.ticker) {
-			goto(`/swap/${tokenA.ticker}-${tokenB.ticker}`, { replaceState: true });
+	function updateRoute(aToken: Token, bToken: Token) {
+		if (aToken.ticker !== tokenA.ticker || bToken.ticker !== tokenB.ticker) {
+			goto(`/swap/${aToken.ticker}-${bToken.ticker}`, { replaceState: true });
 			pageContentRefresh(0);
 		}
 	}
 
-	$: browser && tokens && tokens[0] && tokens[1] && updateRoute(tokens[0], tokens[1]);
+	$: browser && tokens && tokenA && tokenB && updateRoute(tokenA, tokenB);
 
 	let inputTokenA: number = 0;
 	let inputTokenB: number = 0;
@@ -62,14 +96,21 @@
 		if (!inputTokenA || typeof inputTokenA !== 'number') return;
 		let tm: NodeJS.Timeout | undefined;
 		await new Promise((r) => {
-			timeout = setTimeout(r, 1000);
+			timeout = setTimeout(r, 500);
 			tm = timeout;
 		});
 		loading = true;
-		const ret = Number(await simulateHowMuch(tokenA, tokenB, BigInt(Math.floor(inputTokenA * 1e6)), false)) / 1e6;
+		const poolVoiBalance = BigInt($currentPoolState.amount) - BigInt($currentPoolState['min-balance'] ?? 0n);
+		const poolViaBalance = $poolArc200Balance ?? 0n;
+		const ret = calculateOutTokens(
+			BigInt(Math.floor(inputTokenA * tokenA.unit)),
+			tokenA.ticker === 'VOI' ? poolVoiBalance : poolViaBalance,
+			tokenA.ticker === 'VOI' ? poolViaBalance : poolVoiBalance,
+			BigInt(matchedPool.swapFee)
+		);
 		loading = false;
 		if (tm && tm === timeout) {
-			inputTokenB = ret;
+			inputTokenB = Number((Number(ret) / tokenB.unit).toFixed(6));
 			disabled = !inputTokenB;
 		}
 	}
@@ -82,14 +123,21 @@
 		if (!inputTokenB || typeof inputTokenB !== 'number') return;
 		let tm: NodeJS.Timeout | undefined;
 		await new Promise((r) => {
-			timeout = setTimeout(r, 1000);
+			timeout = setTimeout(r, 500);
 			tm = timeout;
 		});
 		loading = true;
-		const ret = Number(await simulateHowMuch(tokenA, tokenB, BigInt(Math.floor(inputTokenB * 1e6)), true)) / 1e6;
+		const poolVoiBalance = BigInt($currentPoolState.amount) - BigInt($currentPoolState['min-balance'] ?? 0n);
+		const poolViaBalance = $poolArc200Balance ?? 0n;
+		const ret = calculateInTokens(
+			BigInt(Math.floor(inputTokenB * tokenB.unit)),
+			tokenA.ticker === 'VOI' ? poolVoiBalance : poolViaBalance,
+			tokenA.ticker === 'VOI' ? poolViaBalance : poolVoiBalance,
+			BigInt(matchedPool.swapFee)
+		);
 		loading = false;
 		if (tm && tm === timeout) {
-			inputTokenA = ret;
+			inputTokenA = Number((Number(ret) / tokenA.unit).toFixed(6));
 			disabled = !inputTokenB;
 		}
 	}
@@ -99,131 +147,80 @@
 		const prev = disabled;
 		disabled = true;
 
-		const tokenAAmount = Math.floor(inputTokenA * 1e6);
-		const tokenBAmount = Math.floor(inputTokenB * 1e6);
+		const tokenAAmount = Math.floor(inputTokenA * tokenA.unit);
+		const tokenBAmount = Math.floor(inputTokenB * tokenB.unit);
 		const minOfTokenB = Math.floor(tokenBAmount - Math.round(tokenBAmount * slippage));
 
-		if (tokenA.ticker === 'VOI' && tokenB.ticker === 'VIA') {
-			await ContractMethods.call('swapVoiToVia', tokenAAmount, minOfTokenB);
+		const algoArc200PoolConnector = new AlgoArc200PoolConnector(matchedPool.arc200Asset.assetId, matchedPool.poolId);
+
+		if (tokenA.ticker === voiToken.ticker && tokenB.ticker === arc200Token.ticker) {
+			await algoArc200PoolConnector.invoke('swapVoiToArc200', BigInt(tokenAAmount), BigInt(minOfTokenB));
 			pageContentRefresh(0);
-		} else if (tokenA.ticker === 'VIA' && tokenB.ticker === 'VOI') {
-			await ContractMethods.call('swapViaToVoi', tokenAAmount, minOfTokenB);
+		} else if (tokenA.ticker === arc200Token.ticker && tokenB.ticker === voiToken.ticker) {
+			await algoArc200PoolConnector.invoke('swapArc200ToVoi', BigInt(tokenAAmount), BigInt(minOfTokenB));
 			pageContentRefresh(0);
 		}
 		disabled = prev;
 	}
+
+	const getTokenSuggestions = (token: Token) => {
+		if (token.type === TokenType.ARC200) {
+			return $knownPools.map((pool) => ({
+				name: pool.arc200Asset.symbol,
+				value: $knownTokens.find((token) => token.id === pool.arc200Asset.assetId),
+			}));
+		}
+	};
+
+	$: poolTokenABalance = ($currentPoolState.amount - ($currentPoolState['min-balance'] ?? 0)) / voiToken.unit;
+	$: poolTokenBBalance = Number($poolArc200Balance) / matchedPool.arc200Asset.unit;
+
+	$: formData = {
+		tokenABalance: tokenA.ticker === arc200Token.ticker ? $userArc200Balance : BigInt($connectedUserState.amount),
+		tokenBBalance: tokenB.ticker === arc200Token.ticker ? $userArc200Balance : $connectedUserState.amount,
+	};
+
+	let impact = 0;
+
+	$: impact = Number(
+		(
+			((poolTokenABalance * 0.99 + inputTokenA) /
+				(poolTokenBBalance - inputTokenB) /
+				((poolTokenABalance * 0.99) / poolTokenBBalance) -
+				1) *
+				100 || 0
+		).toFixed(2)
+	);
 </script>
 
-{#if tokenA && tokenB && tokens}
-	<div class="w-full h-full flex flex-col items-center p-12">
-		<form on:submit|preventDefault class="flex flex-col gap-2 w-full max-w-[448px] mt-40 prose">
-			<h4 class="text-left">Swap {tokens[0].ticker} for {tokens[1].ticker}</h4>
-			<label for="">
-				{tokens[0].ticker}
-			</label>
-			<div class="flex items-center relative">
-				<input
-					type="number"
-					placeholder="{tokens[0].ticker} amount"
-					bind:value={inputTokenA}
-					step={1 / 1e6}
-					on:keypress={onNumberKeyPress}
-					on:keyup={onInputTokenA}
-					required
-					class="input input-primary border-r-0 rounded-r-none input-bordered w-full focus:outline-none"
-				/>
-				{#await tokens[0].ticker === 'VIA' ? getArc200Balance(viaAppId, $connectedAccount) : getBalance($connectedAccount) then balance}
-					<span
-						class="absolute right-0 bottom-full cursor-pointer"
-						on:click={() => {
-							inputTokenA = balance / 1e6;
-							onInputTokenA();
-						}}
-						on:keydown={null}>MAX {(balance / 1e6).toFixed(2)}</span
-					>
-				{/await}
-				<Dropdown
-					class="btn-ghost border-primary hover:border-primary border-l-0 rounded-l-none m-0 mx-0"
-					options={knownTokens.map((token) => ({ name: token.ticker, value: token }))}
-					selected={{ name: tokens[0].ticker, value: tokens[0] }}
-					onSelect={(value) => setSelectedToken(value, 0)}
-				/>
-			</div>
-			<div class="flex justify-center px-1">
-				<button
-					type="reset"
-					class="btn btn-ghost btn-link btn-sm opacity-30 text-base-content"
-					on:click={() => {
-						if (!tokens) return;
-						updateRoute(tokens[1], tokens[0]);
-					}}
-				>
-					<span class="block h-6"><MdSwapVert /></span>
-				</button>
-			</div>
-			<label for="">{tokens[1].ticker}</label>
-			<div class="flex items-center relative">
-				<input
-					type="number"
-					placeholder="{tokens[1].ticker} amount"
-					bind:value={inputTokenB}
-					step={1 / 1e6}
-					on:keypress={onNumberKeyPress}
-					on:keyup={onInputTokenB}
-					required
-					class="input input-primary border-r-0 rounded-r-none input-bordered w-full focus:outline-none"
-				/>
-				{#await tokens[1].ticker === 'VIA' ? getArc200Balance(viaAppId, $connectedAccount) : getBalance($connectedAccount) then balance}
-					<span class="absolute right-0 bottom-full cursor-pointer">{(balance / 1e6).toFixed(2)}</span>
-				{/await}
-				<Dropdown
-					class="btn-ghost border-primary hover:border-primary border-l-0 rounded-l-none m-0 mx-0"
-					options={knownTokens.map((token) => ({ name: token.ticker, value: token }))}
-					selected={{ name: tokens[1].ticker, value: tokens[1] }}
-					onSelect={(value) => setSelectedToken(value, 1)}
-				/>
-			</div>
-
-			<div class="flex flex-col gap-0">
-				<span class="flex justify-between items-center">
-					Min Received = {inputTokenB - inputTokenB * slippage}
-					{tokens[1].ticker}
-					{#if loading}<span class="loading h-4 w-4" />{/if}
-				</span>
-				<span class="">
-					{#await balanceString(currentAppId, viaAppId)}
-						Liquidity = 0 VOI / 0 VIA
-					{:then balance}
-						Liquidity = {balance}
-					{/await}
-				</span>
-			</div>
-			<!-- <br />
-			Fee: {0.5}% -->
-
-			<div class="flex justify-center mt-2 pr-0">
-				<button
-					class="btn btn-primary w-full box-border"
-					class:disabled={tokens[0].ticker === tokens[1].ticker || disabled}
-					{disabled}
-					on:click={swap}
-				>
-					Swap
-				</button>
-			</div>
-		</form>
-	</div>
+{#if voiToken && arc200Token}
+	<SwapForm
+		disabled={!loaded || !inputTokenB || !inputTokenA}
+		tokenABalance={Number(convertDecimals(formData.tokenABalance ?? 0n, tokenA.decimals, 6)) / 1e6}
+		tokenBBalance={Number(convertDecimals(formData.tokenBBalance ?? 0n, tokenB.decimals, 6)) / 1e6}
+		{poolTokenABalance}
+		{poolTokenBBalance}
+		minReceived={inputTokenB - inputTokenB * slippage}
+		{impact}
+		bind:tokenAInput={inputTokenA}
+		bind:tokenBInput={inputTokenB}
+		bind:slippage
+		{tokenA}
+		{tokenB}
+		{onInputTokenA}
+		{onInputTokenB}
+		handleSwitchPlaces={() => {
+			if (!tokens) return;
+			updateRoute(tokenB, tokenA);
+		}}
+		handleSwap={() => ($connectedAccount ? (disabled ? null : swap()) : openModal(ConnectWallet, {}))}
+		handleTokenChange={(token, index) => setSelectedToken(token, index)}
+	/>
+{:else}
+	<h3>Token Not Found</h3>
 {/if}
 
-<style lang="postcss">
-	.disabled {
-		@apply btn-outline;
-		pointer-events: none;
-	}
-	form {
-		opacity: 0;
-		animation: fadein 1s forwards;
-	}
+<style>
 	@keyframes fadein {
 		from {
 			opacity: 0;
