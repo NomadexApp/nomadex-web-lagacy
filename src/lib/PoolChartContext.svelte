@@ -188,14 +188,6 @@
 
 	let innerWidth = browser ? window.innerWidth : 0;
 	let chartWidth = 0;
-
-	const getTargetPair = (arc200Symbol: string) => {
-		if (tokenA.ticker === arc200Token.ticker) {
-			return `${arc200Symbol}-VOI`;
-		} else {
-			return `VOI-${arc200Symbol}`;
-		}
-	};
 </script>
 
 <svelte:window bind:innerWidth />
@@ -208,7 +200,7 @@
 				openModal(SelectTokenModal, {
 					tokens: $knownTokens.filter((token) => token.ticker !== 'VOI'),
 					handleSelect(token) {
-						goto(`/${context}/${token.ticker}`);
+						goto(`/${context}/${token.ticker}${context === 'limit' ? `/${$page.params.action}` : ''}`);
 						pageContentRefresh();
 					},
 				});

@@ -35,33 +35,12 @@
 <div
 	class="w-full event p-2 px-2 sm:px-3 rounded-btn flex justify-start items-center gap-1 max-w-[800px] bg-[#ffff6605] hover:bg-[#ffff6620]"
 >
-	<a
-		class="hidden sm:inline-block flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28"
-		href="https://voi.observer/explorer/account/{order.maker}"
-		target="_blank"
-		referrerpolicy="no-referrer"
-	>
-		{order.maker.slice(0, 3)}...{order.maker.slice(-3)}
-	</a>
 	<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex">
 		{(algoTokenAmouunt / arc200TokenAmount).toLocaleString('en')}
 	</span>
-	<a
-		href="https://voi.observer/explorer/block/{233}"
-		target="_blank"
-		referrerpolicy="no-referrer"
-		class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex"
-	>
-		<CurrencyNumber amount={order.isDirectionFromArc200ToAlgo ? arc200TokenAmount : algoTokenAmouunt} />
-	</a>
-	<a
-		class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex"
-		href="https://voi.observer/explorer/account/{'addr'}"
-		target="_blank"
-		referrerpolicy="no-referrer"
-	>
-		<CurrencyNumber amount={order.isDirectionFromArc200ToAlgo ? algoTokenAmouunt : arc200TokenAmount} />
-	</a>
+	<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex">
+		<CurrencyNumber amount={arc200TokenAmount} />
+	</span>
 	<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-10 sm:w-10 text-justify flex justify-end">
 		{#if order.maker === $connectedAccount}
 			<button

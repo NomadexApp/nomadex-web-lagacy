@@ -38,7 +38,7 @@
 			<li>
 				<a
 					class:active={$page.url.pathname.startsWith('/limit')}
-					href="/limit/{getLastActivePair('limit', $lastActiveLimitOrderPair)}"
+					href="/limit/{getLastActivePair('limit', $lastActiveLimitOrderPair)}/buy"
 				>
 					Limit
 				</a>

@@ -22,7 +22,7 @@
 </script>
 
 <div class="form">
-	<FormTitle>Create limit order</FormTitle>
+	<FormTitle>Create order ({buying ? 'buy' : 'sell'})</FormTitle>
 	<TokenInput
 		pretext="Price of 1 {tokenA.ticker}"
 		token={tokenA.ticker}

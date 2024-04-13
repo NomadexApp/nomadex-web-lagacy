@@ -15,6 +15,9 @@
 	import { pageContentRefresh } from '$lib/utils';
 	import { onChainStateWatcher, watchArc200Balance } from '$lib/stores/onchain';
 	import { connectedAccount } from '$lib/UseWallet.svelte';
+	import CurrencyNumber from '$lib/CurrencyNumber.svelte';
+	import { openModal } from '$lib/components/modal/Modal.svelte';
+	import ConnectWallet from '$lib/components/modal/ConnectWallet.svelte';
 
 	const { page } = getStores();
 	const tokenA = <Token>$knownTokens.find((token) => token.ticker === $page.params.tokenA);
@@ -125,19 +128,22 @@
 	})(limitOrders);
 
 	let price = 0;
-	let lazyPrice = price;
+	let lazyPrice = Number(price.toFixed(6));
 
-	$: if (!lazyPrice && price) {
-		lazyPrice = price;
-	}
+	const updatePriceInput = (price: number) => {
+		if (!lazyPrice && price) {
+			lazyPrice = Number(price.toFixed(6));
+		}
+	};
 
-	let buying = true;
+	$: updatePriceInput(price);
+
 	let disabled = false;
 
 	let inputTokenA = 0;
 
 	async function createLimitOrder() {
-		const inputTokenB = buying ? inputTokenA / price : inputTokenA * price;
+		const inputTokenB = $page.params.action === 'buy' ? inputTokenA / lazyPrice : inputTokenA * lazyPrice;
 
 		if (!tokenA || !tokenB) return;
 		const prev = disabled;
@@ -147,7 +153,7 @@
 		const tokenBAmount = Math.floor(inputTokenB * tokenB.unit);
 		const connector = new LimitOrders001ClientConnector(contracts.orderbookLimitOrderApp);
 
-		if (buying) {
+		if ($page.params.action === 'buy') {
 			await connector.invoke(
 				'createOrder',
 				LimitOrderType.SELL_ALGO_FOR_ARC200,
@@ -168,35 +174,40 @@
 		}
 		disabled = prev;
 	}
+
+	function aggregateOrders(
+		orders: {
+			orderId: number;
+			name: Uint8Array;
+			value: Uint8Array;
+			maker: string;
+			arc200Id: number;
+			arc200Token: Token;
+			algoAmount: number;
+			arc200Amount: bigint;
+			isDirectionFromArc200ToAlgo: number;
+		}[]
+	) {
+		const aggregated: { price: number; total: bigint; orders: typeof orders }[] = [];
+		for (const order of orders) {
+			const price = order.algoAmount / Number(convertDecimals(order.arc200Amount, tokenA.decimals, 6));
+			const approxPrice = Number(price.toFixed(6));
+			let priceGroup = aggregated.find((grp) => grp.price === approxPrice);
+			if (!priceGroup) {
+				priceGroup = { price: approxPrice, total: 0n, orders: [] };
+				aggregated.push(priceGroup);
+			}
+			priceGroup.total += order.arc200Amount;
+			priceGroup.orders.push(order);
+		}
+		return aggregated;
+	}
 </script>
 
 <section class="flex flex-col justify-center max-w-[1200px] mx-auto">
 	<div class="flex flex-col justify-start w-full overflow-auto">
 		<PoolChartContext bind:price context="limit" />
 	</div>
-	<div class="join grid grid-cols-2 w-full max-w-[500px] mx-auto">
-		<button
-			class="join-item btn hover:outline-none btn-outline text-[#ffffdd] hover:bg-[#ffff66]"
-			class:active={buying}
-			on:click={() => {
-				buying = true;
-				inputTokenA = 0;
-			}}
-		>
-			Buy {arc200Token.ticker}
-		</button>
-		<button
-			class="join-item btn hover:outline-none btn-outline text-[#ffffdd] hover:bg-[#ffff66]"
-			class:active={!buying}
-			on:click={() => {
-				buying = false;
-				inputTokenA = 0;
-			}}
-		>
-			Sell {arc200Token.ticker}
-		</button>
-	</div>
-	<br />
 	<div class="flex flex-col justify-center pt-6 max-w-[500px] w-full mx-auto">
 		{#if loading}
 			<div class="w-full min-h-44 flex justify-center items-center">
@@ -206,47 +217,142 @@
 			{#each Object.keys(sortedLimitOrders).filter((key) => Number(key) === arc200Token.id) as key}
 				{@const sellOrders = sortedLimitOrders[key].sellOrders}
 				{@const buyOrders = sortedLimitOrders[key].buyOrders}
-				<!-- <div class="h-[2px]" /> -->
-				<div class="flex justify-center">
-					<h4 class="text-xl w-full mb-5">Best limit orders ({buying ? 'Buy' : 'Sell'})</h4>
+
+				<div class="flex bg-[#ffff6605] flex-col-reverse min-[300px]:flex-row">
+					<div class="flex flex-col flex-grow">
+						<div class="flex-grow">
+							<div class="flex justify-between p-2 px-2 font-[500]">
+								<span class="">Bid</span>
+								<span class="" />
+							</div>
+						</div>
+						<div class="flex-grow h-full max-h-[200px] overflow-y-auto">
+							{#each aggregateOrders(buyOrders).slice(0, 5) as group}
+								<div
+									on:click={() => (lazyPrice = group.price)}
+									on:keydown
+									class="cursor-pointer w-full p-2 px-2 sm:px-3 rounded flex flex-row-reverse min-[300px]:flex-row justify-between items-center gap-1 max-w-[800px] hover:bg-[#ffff6620]"
+								>
+									<span class="text-[0.8rem] sm:text-[1rem]">
+										<CurrencyNumber amount={Number(convertDecimals(group.total, tokenA.decimals, 6)) / 1e6} />
+									</span>
+									<span class="text-green-300 text-[0.8rem] sm:text-[1rem]">
+										{Number(group.price.toFixed(4))}
+									</span>
+								</div>
+							{/each}
+						</div>
+					</div>
+					<div class="flex flex-col flex-grow">
+						<div class="flex-grow">
+							<div class="flex justify-between p-2 px-2 font-[500]">
+								<span class="">Ask</span>
+								<span class="" />
+							</div>
+						</div>
+						<div class="flex-grow h-full max-h-[200px] overflow-y-auto">
+							{#each aggregateOrders([...sellOrders].reverse()).slice(0, 5) as group}
+								<div
+									on:click={() => (lazyPrice = group.price)}
+									on:keydown
+									class="cursor-pointer w-full p-2 px-2 sm:px-3 rounded flex justify-between items-center gap-1 max-w-[800px] hover:bg-[#ffff6620]"
+								>
+									<span class="text-red-400 text-[0.8rem] sm:text-[1rem]">
+										{Number(group.price.toFixed(4))}
+									</span>
+									<span class="text-[0.8rem] sm:text-[1rem] text-justify">
+										<CurrencyNumber amount={Number(convertDecimals(group.total, tokenA.decimals, 6)) / 1e6} />
+									</span>
+								</div>
+							{/each}
+						</div>
+					</div>
 				</div>
-				<div
-					class="w-full event bg-[#ffff6605] font-bold p-3 px-2 sm:px-3 rounded-btn flex justify-start items-center gap-1 max-w-[800px]"
-				>
-					<span class="hidden sm:inline-block flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28"> User </span>
-					<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex">Price</span>
-					<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex">Amount</span>
-					<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex">Total</span>
-					<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-10 sm:w-10 flex">&nbsp;</span>
-				</div>
-				{#if buying}
-					{#each buyOrders as limitOrder}
-						<LimitOrder order={limitOrder} />
-					{/each}
-				{:else}
-					{#each [...sellOrders].reverse() as limitOrder}
-						<LimitOrder order={limitOrder} />
-					{/each}
-				{/if}
 				<br />
 				<br />
 			{/each}
 		{/if}
 	</div>
+
+	<div class="join grid grid-cols-2 w-full max-w-[500px] mx-auto">
+		<a
+			class="join-item btn hover:outline-none btn-outline text-[#ffffdd] hover:bg-[#ffff66]"
+			class:active={$page.params.action === 'buy'}
+			data-sveltekit-noscroll
+			href="/limit/{tokenA.ticker}/buy"
+			on:click={() => {
+				inputTokenA = 0;
+			}}
+		>
+			Buy {arc200Token.ticker}
+		</a>
+		<a
+			class="join-item btn hover:outline-none btn-outline text-[#ffffdd] hover:bg-[#ffff66]"
+			class:active={$page.params.action !== 'buy'}
+			data-sveltekit-noscroll
+			href="/limit/{tokenA.ticker}/sell"
+			on:click={() => {
+				inputTokenA = 0;
+			}}
+		>
+			Sell {arc200Token.ticker}
+		</a>
+	</div>
+	<br />
 	<div class="max-w-[900px] w-full mx-auto flex gap-2">
 		<LimitForm
-			price={Number(lazyPrice.toFixed(6))}
-			{buying}
+			bind:price={lazyPrice}
+			buying={$page.params.action === 'buy'}
 			{tokenA}
 			{tokenB}
 			tokenABalance={(Number($arc200Balance) - 1) / arc200Token.unit}
 			tokenBBalance={($connectedUserState.amount - ($connectedUserState['min-balance'] ?? 0)) / 1e6}
 			bind:tokenAInput={inputTokenA}
 			handleSubmit={() => {
-				createLimitOrder();
+				if ($connectedAccount) {
+					createLimitOrder();
+				} else {
+					openModal(ConnectWallet, {});
+				}
 			}}
 		/>
 	</div>
+	<br />
+
+	{#if $connectedAccount}
+		<div class="flex flex-col justify-center pt-6 max-w-[500px] w-full mx-auto">
+			{#if loading}
+				<div class="w-full min-h-44 flex justify-center items-center">
+					<span class="loading text-primary" />
+				</div>
+			{:else}
+				{#each Object.keys(sortedLimitOrders).filter((key) => Number(key) === arc200Token.id) as key}
+					{@const sellOrders = sortedLimitOrders[key].sellOrders?.filter((o) => o.maker === $connectedAccount)}
+					{@const buyOrders = sortedLimitOrders[key].buyOrders?.filter((o) => o.maker === $connectedAccount)}
+					<div class="flex justify-center">
+						<h4 class="text-xl w-full mb-5">My orders</h4>
+					</div>
+					<div
+						class="w-full event bg-[#ffff6605] font-bold p-3 px-2 sm:px-3 rounded-btn flex justify-start items-center gap-1 max-w-[800px]"
+					>
+						<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex">Price</span>
+						<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex">Amount</span>
+						<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-10 sm:w-10 text-justify flex justify-end" />
+					</div>
+					{#each buyOrders as limitOrder}
+						<LimitOrder order={limitOrder} />
+					{/each}
+
+					{#each [...sellOrders].reverse() as limitOrder}
+						<LimitOrder order={limitOrder} />
+					{/each}
+
+					<br />
+					<br />
+				{/each}
+			{/if}
+		</div>
+	{/if}
 	<br />
 	<br />
 	<br />
