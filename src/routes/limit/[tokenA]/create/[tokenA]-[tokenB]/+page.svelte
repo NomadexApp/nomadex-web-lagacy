@@ -164,7 +164,7 @@
 			</div>
 
 			<div class="flex flex-col gap-0">
-				<br />
+				<div class="br" />
 			</div>
 
 			<div class="flex justify-center mt-2 pr-0">
@@ -178,11 +178,11 @@
 				</button>
 			</div>
 		</form>
-		<br />
-		<br />
-		<br />
+		<div class="br" />
+		<div class="br" />
+		<div class="br" />
 		<span class="flex justify-between">
-			<br />
+			<div class="br" />
 		</span>
 	</div>
 {/if}

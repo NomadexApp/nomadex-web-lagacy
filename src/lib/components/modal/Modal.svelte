@@ -32,7 +32,7 @@
 		left: 50%;
 		margin: 0;
 		transform: translate(-50%, -50%);
-		background: #222211;
+		background: #222222;
 		color: white;
 		border-radius: 8px;
 		width: max-content;
@@ -42,7 +42,7 @@
 		overflow-x: auto;
 		overflow-y: auto;
 		padding: 1rem;
-		box-shadow: 0px 0px 2px #000;
+		box-shadow: #ffffff10 0px 0px 50px;
 		min-height: 100px;
 		z-index: 1001;
 	}
@@ -54,7 +54,8 @@
 		left: 0;
 		right: 0;
 		bottom: 0;
-		background: #ffffff77;
+		background: #ffffff25;
+		backdrop-filter: blur(2px);
 		z-index: 1000;
 	}
 </style>

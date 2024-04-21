@@ -29,17 +29,15 @@
 	});
 </script>
 
-<section class="p-4">
-	<br />
-	<br />
-	<div class="flex flex-col justify-center items-center gap-2 pt-6 relative">
+<section class="p-2">
+	<div class="flex flex-col justify-center items-center gap-2 pt-4 relative">
 		<div class="flex justify-between max-w-[800px] w-full">
-			<h4 class="text-xl font-bold prose w-full mb-5">Tokens</h4>
+			<h4 class="text-xl font-bold w-full mb-5">Tokens</h4>
 			<a href="/tokens/arc200-create" class="btn btn-ghost">Create Arc200 Token</a>
 		</div>
 		{#each $knownTokens as token}
 			<div
-				class="pool bg-base-200 p-4 rounded-btn flex flex-col gap-2 min-w-[100px] sm:min-w-[300px] w-full max-w-[800px]"
+				class="pool bg-[#00000040] p-4 rounded-btn flex flex-col gap-2 min-w-[100px] sm:min-w-[300px] w-full max-w-[800px]"
 				class:cursor-pointer={token.type === TokenType.ARC200}
 				on:click={() => (token.type === TokenType.ARC200 ? goto(`/tokens/arc200-${token.id}`) : '')}
 				on:keydown
@@ -71,7 +69,7 @@
 			</div>
 		{/each}
 	</div>
-	<br />
+	<div class="br" />
 </section>
 
 <style lang="postcss">

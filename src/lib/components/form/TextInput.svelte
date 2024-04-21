@@ -15,7 +15,8 @@
 
 <style>
 	.field {
-		background: #282811;
+		background: #00000033;
+		backdrop-filter: blur(5px);
 		display: flex;
 		flex-direction: column;
 		width: 100%;

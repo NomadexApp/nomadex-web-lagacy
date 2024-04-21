@@ -193,7 +193,7 @@
 					{/each}
 				</div>
 			</div>
-			<br />
+			<div class="br" />
 		{/each}
 	{/if}
 </form>

@@ -19,6 +19,12 @@
 	export let tokenAInput = 0;
 	export let tokenBInput = 0;
 	$: tokenBInput = buying ? tokenAInput / price : tokenAInput * price;
+
+	$: maxBalanceError = buying
+		? Number(tokenAInput) > Number(tokenBBalance)
+		: Number(tokenAInput) > Number(tokenABalance);
+
+	$: isDisabled = disabled || maxBalanceError || !tokenAInput || !tokenBInput;
 </script>
 
 <div class="form">
@@ -62,7 +68,7 @@
 		</svelte:fragment>
 	</TokenInput>
 
-	<ActionButton on:click={handleSubmit} disabled={Boolean($connectedAccount) && disabled}>
+	<ActionButton on:click={handleSubmit} disabled={Boolean($connectedAccount) && isDisabled}>
 		{#if $connectedAccount}
 			Create Limit Order
 		{:else}
@@ -79,7 +85,8 @@
 		margin: 0 auto 0 auto;
 		height: max-content;
 		padding: 2rem;
-		background: #222211;
+		background: #00000040;
+		backdrop-filter: blur(5px);
 		border-radius: 8px;
 		width: 500px;
 		max-width: calc(100vw - 2rem);

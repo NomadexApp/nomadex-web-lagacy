@@ -67,11 +67,11 @@
 
 <section class="pt-12 p-4 h-full flex flex-row justify-evenly items-center gap-3">
 	<div class="h-full flex flex-col justify-start items-center gap-3 w-full">
-		<br /><br />
+		<div class="br" /><div class="br" />
 		<div class="w-full max-w-[610px] flex flex-col justify-center">
 			<div>Arc200 Token Id:</div>
 			<input
-				class="input input-primary"
+				class="input input-secondary bg-[#00000040]"
 				on:keypress|preventDefault
 				on:paste|preventDefault
 				type="number"
@@ -81,28 +81,28 @@
 
 		<div class="w-full max-w-[610px] flex flex-col justify-center">
 			<div>Token Name:</div>
-			<input class="input input-primary" type="text" bind:value={name} />
+			<input class="input input-secondary bg-[#00000040]" type="text" bind:value={name} />
 		</div>
 
 		<div class="w-full max-w-[610px] flex flex-col justify-center">
 			<div>Token Symbol:</div>
-			<input class="input input-primary" type="text" bind:value={symbol} />
+			<input class="input input-secondary bg-[#00000040]" type="text" bind:value={symbol} />
 		</div>
 
 		<div class="w-full max-w-[610px] flex flex-col justify-center">
 			<div>Decimals:</div>
-			<input class="input input-primary" type="number" bind:value={decimals} />
+			<input class="input input-secondary bg-[#00000040]" type="number" bind:value={decimals} />
 		</div>
 
 		<div class="w-full max-w-[610px] flex flex-col justify-center">
 			<div>Total Supply:</div>
-			<input class="input input-primary" type="number" bind:value={totalSupply} />
+			<input class="input input-secondary bg-[#00000040]" type="number" bind:value={totalSupply} />
 		</div>
 
 		{#if currentManager}
 			<div class="w-full max-w-[610px] flex flex-col justify-center">
 				<div>Manager Adress:</div>
-				<input class="input input-primary" type="text" bind:value={manager} />
+				<input class="input input-secondary bg-[#00000040]" type="text" bind:value={manager} />
 			</div>
 			{#if algosdk.isValidAddress(manager) && manager !== currentManager}
 				<div class="w-full max-w-[610px] flex flex-col justify-center">

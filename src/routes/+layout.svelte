@@ -27,6 +27,22 @@
 		$connectedAccount;
 		pageContentRefresh();
 	}
+
+	let hue = Math.floor(Date.now() / 1000) % 360;
+	function nextHue(hue: number, x: number) {
+		return (hue + 45 * x) % 360;
+	}
+
+	$: hueStyle = `
+		--hue1: ${nextHue(hue, 0)};
+		--hue2: ${nextHue(hue, 1)};
+		--hue3: ${nextHue(hue, 2)};
+		--hue4: ${nextHue(hue, 3)};
+		--hue5: ${nextHue(hue, 4)};
+		--hue6: ${nextHue(hue, 5)};
+		--hue7: ${nextHue(hue, 6)};
+		--hue8: ${nextHue(hue, 7)};
+	`;
 </script>
 
 {#if browser && $knownTokens.length}
@@ -37,7 +53,7 @@
 				<!-- <Sidebar /> -->
 				<div class="w-full flex flex-col">
 					{#if $pageContentRefreshPending}
-						<section class="flex flex-col justify-center items-center h-full max-h-[95vh]">
+						<section class="flex flex-col justify-center items-center h-full max-h-[70vh]">
 							<span class="loading" />
 						</section>
 					{:else}
@@ -47,7 +63,7 @@
 					{/if} -->
 				</div>
 			{:else}
-				<div class="flex h-screen w-full justify-center items-center">
+				<div class="flex h-screen max-h-[70vh] w-full justify-center items-center">
 					<span class="loading loading-ring text-primary w-[2.5rem]" />
 				</div>
 			{/if}
@@ -64,12 +80,15 @@
 	</section>
 {/if}
 
+<div class="page-background second" style={hueStyle} />
+
 <style>
 	:global(body) {
 		padding-top: 100px;
 	}
 	article {
-		background: #333322;
+		/* max-width: 1280px; */
+		/* backdrop-filter: blur(10px); */
 		width: 100%;
 		height: 100%;
 		min-height: calc(100vh - 100px);

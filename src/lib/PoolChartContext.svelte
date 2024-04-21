@@ -192,7 +192,7 @@
 
 <svelte:window bind:innerWidth />
 
-<section class="p-4 flex flex-col items-center gap-2 max-w-[900px] mx-auto">
+<section class="flex flex-col items-center gap-2 max-w-[900px] mx-auto">
 	<div class="flex w-full gap-2">
 		<button
 			class="currency flex justify-center items-center mt-[0.1rem] p-2 py-0 w-[2.2rem] h-[1.8rem] rounded text-white bg-transparent"
@@ -224,47 +224,52 @@
 		</div>
 		<div>
 			<button
-				class="btn btn-sm hidden sm:inline-flex rounded-[8px]"
+				class="btn btn-sm btn-ghost border-none bg-[#00000040] hover:bg-[#00000040] hover:opacity-70 text-white hidden sm:inline-flex rounded-[4px]"
 				on:click={() => {
 					logarithmic = !logarithmic;
 					generateDataByTime(pricingDirection);
 				}}>{logarithmic ? 'linear' : 'log'}</button
 			>
 			<button
-				class="btn btn-sm hidden sm:inline-flex rounded-[8px]"
-				class:btn-primary={timescale === Timescale['15m']}
+				class="btn btn-sm {timescale === Timescale['15m']
+					? 'btn-primary'
+					: 'btn-ghost border-none bg-[#00000040] hover:bg-[#00000040] hover:opacity-70 text-white'} hidden sm:inline-flex rounded-[4px]"
 				on:click={() => {
 					timescale = Timescale['15m'];
 					generateDataByTime(pricingDirection);
 				}}>15m</button
 			>
 			<button
-				class="btn btn-sm hidden sm:inline-flex rounded-[8px]"
-				class:btn-primary={timescale === Timescale['30m']}
+				class="btn btn-sm {timescale === Timescale['30m']
+					? 'btn-primary'
+					: 'btn-ghost border-none bg-[#00000040] hover:bg-[#00000040] hover:opacity-70 text-white'} hidden sm:inline-flex rounded-[4px]"
 				on:click={() => {
 					timescale = Timescale['30m'];
 					generateDataByTime(pricingDirection);
 				}}>30m</button
 			>
 			<button
-				class="btn btn-sm hidden sm:inline-flex rounded-[8px]"
-				class:btn-primary={timescale === Timescale['1hr']}
+				class="btn btn-sm {timescale === Timescale['1hr']
+					? 'btn-primary'
+					: 'btn-ghost border-none bg-[#00000040] hover:bg-[#00000040] hover:opacity-70 text-white'} hidden sm:inline-flex rounded-[4px]"
 				on:click={() => {
 					timescale = Timescale['1hr'];
 					generateDataByTime(pricingDirection);
 				}}>1hr</button
 			>
 			<button
-				class="btn btn-sm hidden sm:inline-flex rounded-[8px]"
-				class:btn-primary={timescale === Timescale['4hr']}
+				class="btn btn-sm {timescale === Timescale['4hr']
+					? 'btn-primary'
+					: 'btn-ghost border-none bg-[#00000040] hover:bg-[#00000040] hover:opacity-70 text-white'} hidden sm:inline-flex rounded-[4px]"
 				on:click={() => {
 					timescale = Timescale['4hr'];
 					generateDataByTime(pricingDirection);
 				}}>4hr</button
 			>
 			<button
-				class="btn btn-sm hidden sm:inline-flex rounded-[8px]"
-				class:btn-primary={timescale === Timescale['1d']}
+				class="btn btn-sm {timescale === Timescale['1d']
+					? 'btn-primary'
+					: 'btn-ghost border-none bg-[#00000040] hover:bg-[#00000040] hover:opacity-70 text-white'} hidden sm:inline-flex rounded-[4px]"
 				on:click={() => {
 					timescale = Timescale['1d'];
 					generateDataByTime(pricingDirection);
@@ -273,7 +278,7 @@
 		</div>
 	</div>
 	<div
-		class="chart-container min-w-[250px] w-full overflow-hidden"
+		class="chart-container min-w-[250px] w-full overflow-hidden bg-[#00000033] rounded-[8px]"
 		bind:clientWidth={chartWidth}
 		style="min-height: {chartWidth / 2.6}px;"
 	>
@@ -311,11 +316,13 @@
 		width: 100%;
 	}
 	.chart-container {
+		backdrop-filter: blur(5px);
 		width: 100%;
 		display: flex;
 		justify-content: center;
 		max-height: 500px;
-		max-width: calc(100vw - 200px);
+		max-width: 900px;
+		padding-right: 0.5rem;
 	}
 
 	@media (max-width: 300px) {

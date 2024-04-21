@@ -129,11 +129,11 @@
 
 <section class="pt-12 p-4 h-full flex flex-row justify-evenly items-center gap-3">
 	<div class="h-full flex flex-col justify-start items-center gap-3 w-full">
-		<br /><br />
+		<div class="br" /><div class="br" />
 		<div class="w-full max-w-[610px] flex flex-col justify-center">
 			<div>Manager Adress:</div>
 			<input
-				class="input input-primary"
+				class="input input-secondary bg-[#00000040]"
 				type="text"
 				on:keypress|preventDefault
 				on:paste|preventDefault
@@ -147,19 +147,19 @@
 		{/if}
 		<div class="w-full max-w-[610px] flex flex-col justify-center">
 			<div>Token Name ({name.length}/32):</div>
-			<input class="input input-primary" type="text" bind:value={name} />
+			<input class="input input-secondary bg-[#00000040]" type="text" bind:value={name} />
 		</div>
 		<div class="w-full max-w-[610px] flex flex-col justify-center">
 			<div>Token Symbol ({symbol.length}/8):</div>
-			<input class="input input-primary" type="text" bind:value={symbol} />
+			<input class="input input-secondary bg-[#00000040]" type="text" bind:value={symbol} />
 		</div>
 		<div class="w-full max-w-[610px] flex flex-col justify-center">
 			<div>Decimals:</div>
-			<input class="input input-primary" type="number" max={18} min={0} step={1} bind:value={decimals} />
+			<input class="input input-secondary bg-[#00000040]" type="number" max={18} min={0} step={1} bind:value={decimals} />
 		</div>
 		<div class="w-full max-w-[610px] flex flex-col justify-center">
 			<div>Total Supply</div>
-			<input class="input input-primary" type="number" min={0} max={2 ** 64} step={1} bind:value={totalSupply} />
+			<input class="input input-secondary bg-[#00000040]" type="number" min={0} max={2 ** 64} step={1} bind:value={totalSupply} />
 		</div>
 		<div>
 			Total Supply: {totalSupply.toLocaleString('en')}{decimals ? '.' : ''}{Array(decimals).fill('0').join('')}

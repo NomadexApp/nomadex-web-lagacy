@@ -176,8 +176,14 @@
 	$: poolTokenBBalance = Number($poolArc200Balance) / matchedPool.arc200Asset.unit;
 
 	$: formData = {
-		tokenABalance: tokenA.ticker === arc200Token.ticker ? $userArc200Balance : BigInt($connectedUserState.amount),
-		tokenBBalance: tokenB.ticker === arc200Token.ticker ? $userArc200Balance : $connectedUserState.amount,
+		tokenABalance:
+			tokenA.ticker === arc200Token.ticker
+				? $userArc200Balance
+				: BigInt(Math.max(0, $connectedUserState.amount - (($connectedUserState['min-balance'] ?? 0) + 100_000))),
+		tokenBBalance:
+			tokenB.ticker === arc200Token.ticker
+				? $userArc200Balance
+				: BigInt(Math.max(0, $connectedUserState.amount - (($connectedUserState['min-balance'] ?? 0) + 100_000))),
 	};
 
 	let impact = 0;
@@ -191,6 +197,19 @@
 				100 || 0
 		).toFixed(2)
 	);
+
+	let lastPoolArc200Balance = 0n;
+	let lastPoolAlgoBalance = 0;
+	$: if (
+		$poolArc200Balance &&
+		$currentPoolState.amount &&
+		inputTokenA &&
+		($poolArc200Balance !== lastPoolArc200Balance || $currentPoolState.amount !== lastPoolAlgoBalance)
+	) {
+		onInputTokenA();
+		lastPoolArc200Balance = $poolArc200Balance;
+		lastPoolAlgoBalance = $currentPoolState.amount;
+	}
 </script>
 
 {#if voiToken && arc200Token}

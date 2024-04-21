@@ -2,7 +2,7 @@
 	export let data: [string, string][];
 </script>
 
-<div class="info text-[#fff9] text-sm flex flex-col">
+<div class="info text-gray-300 text-sm flex flex-col">
 	{#each data as info}
 		<div class="">
 			<div class="">{info[0]}</div>

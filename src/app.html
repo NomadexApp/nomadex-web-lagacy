@@ -2,7 +2,7 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="shortcut icon" href="/favicon.jpg" type="image/jpeg" />
+		<link rel="shortcut icon" href="/favicon.svg" type="image/jpeg" />
 		<meta name="viewport" content="width=device-width" />
 		<title>Nomadex | Decentalized Exchange</title>
 
@@ -10,12 +10,13 @@
 			globalThis.global = globalThis;
 		</script>
 		<link rel="stylesheet" href="/fonts/Chalkboard/import.css" />
-		<meta name="theme-color" media="(prefers-color-scheme: light)" content="blue" />
-		<meta name="theme-color" media="(prefers-color-scheme: dark)" content="black" />
+		<meta name="theme-color" media="(prefers-color-scheme: light)" content="#222222" />
+		<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#222222" />
 
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">%sveltekit.body%</div>
+		<div class="page-background"></div>
 	</body>
 </html>

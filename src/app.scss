@@ -1,15 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap');
 
-:root {
-	--primary-color: #ffff66;
-	--secondary-color: #333333;
-	background: #333322;
-	// background-image: linear-gradient(to bottom, #ffff66 30%, #333333);
-}
-
 html {
 	padding: 0;
 	margin: 0;
+	--color-primary: hsl(60 100% 70%);
+	--color-primary-50: hsl(60 85% 50% / 50%);
+	--color-primary-25: hsl(60 85% 50% / 25%);
+	--color-primary-12: hsl(60 85% 50% / 12%);
+	--color-light-1: hsl(60, 50%, 90%);
+	--color-light-2: hsl(60, 40%, 80%);
+	--color-light-3: hsl(60, 30%, 70%);
+	--color-light-4: hsl(60, 20%, 60%);
+	--color-light-5: hsl(60, 18%, 50%);
+	--color-light-6: hsl(60, 16%, 40%);
+	--color-light-7: hsl(60, 14%, 30%);
+	--color-light-8: hsl(60, 14%, 25%);
+	--color-light-9: hsl(60, 14%, 10%);
+	--color-light-10: hsl(60, 14%, 0%);
 }
 
 body {
@@ -20,16 +27,92 @@ body {
 	font-optical-sizing: auto;
 }
 
-// html:before {
-// 	content: '';
-// 	background-color: #ffff66;
-// 	position: fixed;
-// 	top: 0px;
-// 	left: 0;
-// 	right: 0;
-// 	height: 400px;
-// 	z-index: -100;
-// }
+.page-background {
+	--color: var(--color-light-7);
+	background: linear-gradient(0deg, transparent 44%, var(--color) 45%, var(--color) 55%, transparent 56%),
+		linear-gradient(90deg, transparent 44%, var(--color) 45%, var(--color) 55%, transparent 56%);
+	// background: radial-gradient(circle, var(--color) 10%, transparent 11%),
+	// 	radial-gradient(circle at bottom left, var(--color) 5%, transparent 6%),
+	// 	radial-gradient(circle at bottom right, var(--color) 5%, transparent 6%),
+	// 	radial-gradient(circle at top left, var(--color) 5%, transparent 6%),
+	// 	radial-gradient(circle at top right, var(--color) 5%, transparent 6%);
+	background-size: 0.6rem 0.6rem;
+	background-color: var(--color-light-8);
+	opacity: 1;
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: -10;
+}
+
+.page-background.second {
+	// background: linear-gradient(270deg, #93e8d2, #362274);
+	background: linear-gradient(to bottom, #222222 0px, transparent 90%),
+		linear-gradient(
+			to right,
+			hsl(var(--hue1) 50% 50% / 40%),
+			hsl(var(--hue2) 50% 50% / 40%),
+			hsl(var(--hue3) 50% 50% / 40%),
+			hsl(var(--hue4) 50% 50% / 40%),
+			hsl(var(--hue5) 50% 50% / 40%),
+			hsl(var(--hue6) 50% 50% / 40%),
+			hsl(var(--hue7) 50% 50% / 40%),
+			hsl(var(--hue8) 50% 50% / 40%),
+			hsl(var(--hue1) 50% 50% / 40%),
+			hsl(var(--hue2) 50% 50% / 40%),
+			hsl(var(--hue3) 50% 50% / 40%)
+		);
+	opacity: 1;
+	background-size: 8000% 100%;
+
+	-webkit-animation: AnimationName 358s linear infinite;
+	-moz-animation: AnimationName 358s linear infinite;
+	-o-animation: AnimationName 358s linear infinite;
+	animation: AnimationName 358s linear infinite;
+	z-index: -9;
+}
+
+@-webkit-keyframes AnimationName {
+	0% {
+		background-position-x: 0%;
+	}
+	100% {
+		background-position-x: 80%;
+	}
+}
+@-moz-keyframes AnimationName {
+	0% {
+		background-position-x: 0%;
+	}
+	100% {
+		background-position-x: 80%;
+	}
+}
+@-o-keyframes AnimationName {
+	0% {
+		background-position-x: 0%;
+	}
+	100% {
+		background-position-x: 80%;
+	}
+}
+@keyframes AnimationName {
+	0% {
+		background-position-x: 0%;
+	}
+	100% {
+		background-position-x: 80%;
+	}
+}
+
+.page-content {
+	margin: 0 auto;
+	padding: 4rem;
+	width: 1024px;
+	background: #252515;
+}
 
 * {
 	box-sizing: border-box;
@@ -39,4 +122,16 @@ input[type='number'].no-arrows::-webkit-inner-spin-button,
 input[type='number'].no-arrows::-webkit-outer-spin-button {
 	-webkit-appearance: none;
 	margin: 0;
+}
+
+input[type='number'] {
+	-moz-appearance: textfield;
+	appearance: textfield;
+}
+
+.br {
+	display: flex;
+	width: 0%;
+	height: 1rem;
+	background: red;
 }

@@ -20,6 +20,7 @@
 			step="0.000001"
 			bind:value
 			{disabled}
+			min={0}
 			on:keypress={onNumberKeyPress}
 			on:keyup
 			class="no-arrows"
@@ -58,7 +59,7 @@
 
 <style>
 	.field {
-		background: #282811;
+		background: #00000015;
 		display: flex;
 		flex-direction: column;
 		width: 100%;
@@ -85,13 +86,13 @@
 
 	.field .right .currency {
 		padding: 0.25rem 1rem;
-		background: #ffff6622;
+		background: #00000015;
 		border-radius: 3rem;
 		cursor: pointer;
 	}
 
 	.field .right .currency:hover {
-		background: #ffff6633;
+		background: #00000050;
 	}
 
 	.field .right .currency svg {

@@ -150,7 +150,7 @@
 		padding: 0.75rem;
 		display: flex;
 		gap: 0.5rem;
-		box-shadow: 0 0 3px #666633;
+		box-shadow: 0 0 1px #f0f0f0;
 	}
 	.notification > .icon.close {
 		background: transparent;
@@ -181,27 +181,27 @@
 		color: #fff;
 	}
 	.notification.info {
-		--notification-bg: #222211;
-		--notification-color: #6666ff;
+		--notification-bg: #222222;
+		--notification-color: #73a9ff;
 		color: black;
 	}
 	.notification.error {
-		--notification-bg: #222211;
+		--notification-bg: #222222;
 		--notification-color: #ff6666;
 		color: black;
 	}
 	.notification.warn {
-		--notification-bg: #222211;
+		--notification-bg: #222222;
 		--notification-color: #f3c04a;
 		color: black;
 	}
 	.notification.pending {
-		--notification-bg: #222211;
+		--notification-bg: #222222;
 		--notification-color: #ffff66;
 		color: black;
 	}
 	.notification.success {
-		--notification-bg: #222211;
+		--notification-bg: #222222;
 		--notification-color: #77cc77;
 		color: black;
 	}

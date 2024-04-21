@@ -130,7 +130,7 @@
 	/>
 </div>
 
-<br />
+<div class="br" />
 <div class="flex justify-center text-sm">
 	<a
 		class="hover:underline underline-offset-4 text-[#ffffff]"
@@ -144,10 +144,11 @@
 <style>
 	.form {
 		background-color: var(--primary-color);
-		margin: 100px auto 0 auto;
+		margin: 5rem auto 0 auto;
 		height: max-content;
 		padding: 2rem;
-		background: #222211;
+		background: #00000040;
+		backdrop-filter: blur(5px);
 		border-radius: 8px;
 		width: 500px;
 		max-width: calc(100vw - 2rem);

@@ -1,7 +1,7 @@
 <script lang="ts" context="module">
 	export function readableNumber(number: number): string {
 		if (number < 1000) {
-			return number.toString();
+			return Number(number.toFixed(2)).toString();
 		} else if (number < 1000000) {
 			return (number / 1000).toFixed(1) + 'k';
 		} else if (number < 1000000000) {

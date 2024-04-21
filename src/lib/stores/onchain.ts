@@ -140,7 +140,7 @@ export function watchArc200Balance(
 	address: string,
 	duration = 15_000
 ): ReturnType<typeof readable<bigint>> {
-	const store = writable<bigint>();
+	const store = writable<bigint>(0n);
 	if (!address) return store;
 
 	const update = async () => {
@@ -152,6 +152,7 @@ export function watchArc200Balance(
 		} catch (er) {
 			//
 			// console.error(er)
+			store.set(0n);
 		}
 	};
 

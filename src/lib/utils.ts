@@ -121,7 +121,6 @@ export function fillMissingSeconds(data: { time: number; value: number }[]): { t
 			}
 		}
 	}
-
 	return filledData;
 }
 

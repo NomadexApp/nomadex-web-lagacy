@@ -149,11 +149,11 @@
 					<button class="btn btn-primary btn-sm" on:click={deployLimitOrders}>DEPLOY</button>
 				</div>
 			{:else}
-				<br />
+				<div class="br" />
 				<div class="w-full max-w-[610px] flex flex-col justify-center">
 					<button class="btn btn-primary btn-sm" on:click={deployLimitOrders}>Update Contract</button>
 				</div>
-				<br />
+				<div class="br" />
 				{#if appId !== 0 && appId > 100}
 					<div class="w-full max-w-[610px] flex flex-col justify-center">
 						<div>Selection PK:</div>

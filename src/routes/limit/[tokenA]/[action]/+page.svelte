@@ -18,6 +18,7 @@
 	import CurrencyNumber from '$lib/CurrencyNumber.svelte';
 	import { openModal } from '$lib/components/modal/Modal.svelte';
 	import ConnectWallet from '$lib/components/modal/ConnectWallet.svelte';
+	import Join from '$lib/components/join/Join.svelte';
 
 	const { page } = getStores();
 	const tokenA = <Token>$knownTokens.find((token) => token.ticker === $page.params.tokenA);
@@ -186,12 +187,14 @@
 			algoAmount: number;
 			arc200Amount: bigint;
 			isDirectionFromArc200ToAlgo: number;
-		}[]
+		}[],
+		range: number
 	) {
 		const aggregated: { price: number; total: bigint; orders: typeof orders }[] = [];
 		for (const order of orders) {
 			const price = order.algoAmount / Number(convertDecimals(order.arc200Amount, tokenA.decimals, 6));
-			const approxPrice = Number(price.toFixed(6));
+			const c = 10 ** -Math.log10(range);
+			const approxPrice = Number(Math.floor(price * c) / c);
 			let priceGroup = aggregated.find((grp) => grp.price === approxPrice);
 			if (!priceGroup) {
 				priceGroup = { price: approxPrice, total: 0n, orders: [] };
@@ -202,13 +205,64 @@
 		}
 		return aggregated;
 	}
+	let rangeSelectElement: HTMLDetailsElement;
+	let range = JSON.parse(browser ? localStorage.getItem('LIMIT_ORDERBOOK_PRICE_RANGE') || '0.001' : '0.001');
+	let rangeOptions = [1, 0.1, 0.01, 0.001, 0.0001];
+
+	$: browser && localStorage.setItem('LIMIT_ORDERBOOK_PRICE_RANGE', JSON.stringify(range));
 </script>
 
+<svelte:window
+	on:click={() => {
+		if (!rangeSelectElement) return;
+		rangeSelectElement.open = false;
+	}}
+/>
+
 <section class="flex flex-col justify-center max-w-[1200px] mx-auto">
-	<div class="flex flex-col justify-start w-full overflow-auto">
+	<div class="flex flex-col justify-start w-full overflow-auto mb-8">
 		<PoolChartContext bind:price context="limit" />
 	</div>
-	<div class="flex flex-col justify-center pt-6 max-w-[500px] w-full mx-auto">
+	<div class="flex justify-end w-full max-w-[500px] mx-auto">
+		<details
+			bind:this={rangeSelectElement}
+			class="dropdown dropdown-bottom dropdown-end"
+			on:blur={() => console.log('blu')}
+			on:click|stopPropagation
+			on:keydown
+		>
+			<summary class="btn btn-sm btn-ghost mb-2 flex gap-1 items-center">
+				{range}
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke-width="1.5"
+					stroke="currentColor"
+					class="w-4 h-4"
+				>
+					<path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+				</svg>
+			</summary>
+			<ul class="dropdown-content z-[1] menu p-0 shadow rounded-box w-24 bg-[#222222]">
+				{#each rangeOptions as opt}
+					<li
+						class="hover:bg-[#ffffff20] rounded-sm"
+						on:click={() => {
+							range = opt;
+							rangeSelectElement.open = false;
+						}}
+						on:keydown
+					>
+						<a href={null}>{opt}</a>
+					</li>
+				{/each}
+			</ul>
+		</details>
+	</div>
+	<div
+		class="flex flex-col justify-center max-w-[500px] w-full mx-auto bg-[#00000033] backdrop-blur-[5px] rounded-btn mb-4 py-2 px-2 overflow-hidden"
+	>
 		{#if loading}
 			<div class="w-full min-h-44 flex justify-center items-center">
 				<span class="loading text-primary" />
@@ -218,47 +272,47 @@
 				{@const sellOrders = sortedLimitOrders[key].sellOrders}
 				{@const buyOrders = sortedLimitOrders[key].buyOrders}
 
-				<div class="flex bg-[#ffff6605] flex-col-reverse min-[300px]:flex-row">
-					<div class="flex flex-col flex-grow">
+				<div class="flex flex-col-reverse min-[300px]:flex-row">
+					<div class="flex flex-col flex-grow w-full">
 						<div class="flex-grow">
-							<div class="flex justify-between p-2 px-2 font-[500]">
+							<div class="flex justify-between p-2 px-2 font-[500] sm:pl-3">
 								<span class="">Bid</span>
 								<span class="" />
 							</div>
 						</div>
 						<div class="flex-grow h-full max-h-[200px] overflow-y-auto">
-							{#each aggregateOrders(buyOrders).slice(0, 5) as group}
+							{#each aggregateOrders(buyOrders, range).slice(0, 5) as group}
 								<div
 									on:click={() => (lazyPrice = group.price)}
 									on:keydown
-									class="cursor-pointer w-full p-2 px-2 sm:px-3 rounded flex flex-row-reverse min-[300px]:flex-row justify-between items-center gap-1 max-w-[800px] hover:bg-[#ffff6620]"
+									class="cursor-pointer w-full p-2 px-2 sm:px-3 rounded flex flex-row-reverse min-[300px]:flex-row justify-between items-center gap-1 max-w-[800px] hover:bg-[#ffffff20]"
 								>
 									<span class="text-[0.8rem] sm:text-[1rem]">
 										<CurrencyNumber amount={Number(convertDecimals(group.total, tokenA.decimals, 6)) / 1e6} />
 									</span>
-									<span class="text-green-300 text-[0.8rem] sm:text-[1rem]">
-										{Number(group.price.toFixed(4))}
+									<span class="text-green-300 text-[0.8rem] sm:text-[1rem] font-mono">
+										{group.price.toFixed(-Math.log10(range))}
 									</span>
 								</div>
 							{/each}
 						</div>
 					</div>
-					<div class="flex flex-col flex-grow">
+					<div class="flex flex-col flex-grow w-full">
 						<div class="flex-grow">
-							<div class="flex justify-between p-2 px-2 font-[500]">
+							<div class="flex justify-between p-2 px-2 font-[500] sm:pl-3">
 								<span class="">Ask</span>
 								<span class="" />
 							</div>
 						</div>
 						<div class="flex-grow h-full max-h-[200px] overflow-y-auto">
-							{#each aggregateOrders([...sellOrders].reverse()).slice(0, 5) as group}
+							{#each aggregateOrders([...sellOrders].reverse(), range).slice(0, 5) as group}
 								<div
 									on:click={() => (lazyPrice = group.price)}
 									on:keydown
-									class="cursor-pointer w-full p-2 px-2 sm:px-3 rounded flex justify-between items-center gap-1 max-w-[800px] hover:bg-[#ffff6620]"
+									class="cursor-pointer w-full p-2 px-2 sm:px-3 rounded flex justify-between items-center gap-1 max-w-[800px] hover:bg-[#ffffff20]"
 								>
-									<span class="text-red-400 text-[0.8rem] sm:text-[1rem]">
-										{Number(group.price.toFixed(4))}
+									<span class="text-red-400 text-[0.8rem] sm:text-[1rem] font-mono">
+										{group.price.toFixed(-Math.log10(range))}
 									</span>
 									<span class="text-[0.8rem] sm:text-[1rem] text-justify">
 										<CurrencyNumber amount={Number(convertDecimals(group.total, tokenA.decimals, 6)) / 1e6} />
@@ -268,45 +322,41 @@
 						</div>
 					</div>
 				</div>
-				<br />
-				<br />
 			{/each}
 		{/if}
 	</div>
 
-	<div class="join grid grid-cols-2 w-full max-w-[500px] mx-auto">
-		<a
-			class="join-item btn hover:outline-none btn-outline text-[#ffffdd] hover:bg-[#ffff66]"
-			class:active={$page.params.action === 'buy'}
-			data-sveltekit-noscroll
-			href="/limit/{tokenA.ticker}/buy"
-			on:click={() => {
-				inputTokenA = 0;
-			}}
-		>
-			Buy {arc200Token.ticker}
-		</a>
-		<a
-			class="join-item btn hover:outline-none btn-outline text-[#ffffdd] hover:bg-[#ffff66]"
-			class:active={$page.params.action !== 'buy'}
-			data-sveltekit-noscroll
-			href="/limit/{tokenA.ticker}/sell"
-			on:click={() => {
-				inputTokenA = 0;
-			}}
-		>
-			Sell {arc200Token.ticker}
-		</a>
+	<div class="w-full max-w-[500px] mx-auto">
+		<Join
+			items={[
+				{
+					id: 'buy',
+					name: `Buy ${arc200Token.ticker}`,
+					href: `/limit/${tokenA.ticker}/buy`,
+					'data-sveltekit-noscroll': true,
+				},
+				{
+					id: 'sell',
+					name: `Sell ${arc200Token.ticker}`,
+					href: `/limit/${tokenA.ticker}/sell`,
+					'data-sveltekit-noscroll': true,
+				},
+			]}
+			active={$page.params.action === 'sell' ? 'sell' : 'buy'}
+			on:select={() => (inputTokenA = 0)}
+		/>
 	</div>
-	<br />
+	<div class="br" />
 	<div class="max-w-[900px] w-full mx-auto flex gap-2">
 		<LimitForm
 			bind:price={lazyPrice}
 			buying={$page.params.action === 'buy'}
 			{tokenA}
 			{tokenB}
+			{disabled}
 			tokenABalance={(Number($arc200Balance) - 1) / arc200Token.unit}
-			tokenBBalance={($connectedUserState.amount - ($connectedUserState['min-balance'] ?? 0)) / 1e6}
+			tokenBBalance={Math.max(0, $connectedUserState.amount - (($connectedUserState['min-balance'] ?? 0) + 100_000)) /
+				1e6}
 			bind:tokenAInput={inputTokenA}
 			handleSubmit={() => {
 				if ($connectedAccount) {
@@ -317,7 +367,7 @@
 			}}
 		/>
 	</div>
-	<br />
+	<div class="br" />
 
 	{#if $connectedAccount}
 		<div class="flex flex-col justify-center pt-6 max-w-[500px] w-full mx-auto">
@@ -329,37 +379,37 @@
 				{#each Object.keys(sortedLimitOrders).filter((key) => Number(key) === arc200Token.id) as key}
 					{@const sellOrders = sortedLimitOrders[key].sellOrders?.filter((o) => o.maker === $connectedAccount)}
 					{@const buyOrders = sortedLimitOrders[key].buyOrders?.filter((o) => o.maker === $connectedAccount)}
-					<div class="flex justify-center">
-						<h4 class="text-xl w-full mb-5">My orders</h4>
-					</div>
-					<div
-						class="w-full event bg-[#ffff6605] font-bold p-3 px-2 sm:px-3 rounded-btn flex justify-start items-center gap-1 max-w-[800px]"
-					>
-						<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex">Price</span>
-						<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex">Amount</span>
-						<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-10 sm:w-10 text-justify flex justify-end" />
-					</div>
-					{#each buyOrders as limitOrder}
-						<LimitOrder order={limitOrder} />
-					{/each}
+					{#if sellOrders.length || buyOrders.length}
+						<div class="flex justify-center">
+							<h4 class="text-xl w-full mb-5 font-medium">My orders</h4>
+						</div>
+						<div class="bg-[#00000033] backdrop-blur-[5px] rounded-[8px] p-2">
+							<div
+								class="w-full event font-medium p-3 px-2 sm:px-3 rounded-btn flex justify-start items-center gap-1 max-w-[800px]"
+							>
+								<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex">Price</span>
+								<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex">Amount</span>
+								<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-10 sm:w-10 text-justify flex justify-end" />
+							</div>
+							{#each [...sellOrders].reverse() as limitOrder}
+								<LimitOrder buy={false} order={limitOrder} />
+							{/each}
 
-					{#each [...sellOrders].reverse() as limitOrder}
-						<LimitOrder order={limitOrder} />
-					{/each}
+							{#each buyOrders as limitOrder}
+								<LimitOrder buy={true} order={limitOrder} />
+							{/each}
+						</div>
 
-					<br />
-					<br />
+						<div class="br" />
+						<div class="br" />
+					{/if}
 				{/each}
 			{/if}
 		</div>
 	{/if}
-	<br />
-	<br />
-	<br />
-	<br />
-	<br />
-	<br />
-	<br />
+	<div class="br" />
+	<div class="br" />
+	<div class="br" />
 </section>
 
 <style>
@@ -379,10 +429,5 @@
 		display: flex;
 		width: 100%;
 		min-height: 100vh;
-	}
-
-	.join-item.active {
-		color: #000000;
-		background: #ffff66;
 	}
 </style>

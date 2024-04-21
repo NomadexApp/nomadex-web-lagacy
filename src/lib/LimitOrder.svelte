@@ -17,6 +17,7 @@
 		arc200Amount: bigint;
 		isDirectionFromArc200ToAlgo: number;
 	};
+	export let buy: boolean;
 
 	async function cancelLimitOrder(e: MouseEvent, limitOrder: typeof order) {
 		e.stopPropagation();
@@ -33,9 +34,13 @@
 </script>
 
 <div
-	class="w-full event p-2 px-2 sm:px-3 rounded-btn flex justify-start items-center gap-1 max-w-[800px] bg-[#ffff6605] hover:bg-[#ffff6620]"
+	class="w-full event p-2 px-2 sm:px-3 rounded flex justify-start items-center gap-1 max-w-[800px] hover:bg-[#ffffff20]"
 >
-	<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex">
+	<span
+		class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex font-mono"
+		class:text-green-300={buy}
+		class:text-red-400={!buy}
+	>
 		{(algoTokenAmouunt / arc200TokenAmount).toLocaleString('en')}
 	</span>
 	<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-16 sm:w-28 flex">
@@ -44,10 +49,10 @@
 	<span class="flex-grow text-[0.8rem] sm:text-[1rem] w-10 sm:w-10 text-justify flex justify-end">
 		{#if order.maker === $connectedAccount}
 			<button
-				class="p-2 bg-[#ffff6622] w-6 h-6 rounded flex justify-center items-center"
+				class="btn btn-sm btn-ghost btn-square hover:bg-transparent w-6 h-6 rounded flex justify-center items-center"
 				on:click={(e) => cancelLimitOrder(e, order)}
 			>
-				<span class="scale-150"><MdClose /></span>
+				<span class="scale-[0.8]"><MdClose /></span>
 			</button>
 		{/if}
 	</span>

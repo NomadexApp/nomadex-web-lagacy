@@ -8,16 +8,19 @@
 	import { getLastActivePair } from '$lib/config';
 	import { lastActiveAnalyticsPair, lastActiveLimitOrderPair, lastActiveSwapPair } from '$lib/stores';
 	import { addNotification } from '$lib/Notify.svelte';
-	import { getAccountBalance, watchArc200Balance } from '$lib/stores/onchain';
+	import { getAccountBalance } from '$lib/stores/onchain';
 
 	const { page } = getStores();
+	let scrollY = 0;
 </script>
 
-<div class="navbar-wrapper">
-	<nav class="navbar flex flex-col sm:flex-row">
+<svelte:window bind:scrollY />
+
+<div class="navbar-wrapper" class:scrolled={scrollY > 10}>
+	<nav class="navbar flex flex-col sm:flex-row text-gray-100 max-w-screen-2xl mx-auto">
 		<div class="navbar-brand">
 			<div class="logo-wrapper">
-				<a href="/"><Logo /></a>
+				<a class="text-primary" href="/"><Logo /></a>
 			</div>
 		</div>
 		<div class="space hidden sm:block" />
@@ -52,15 +55,11 @@
 					Analytics
 				</a>
 			</li>
-
-			<li>
-				<a href="https://v01.nomadex.app" target="_blank">v0.1</a>
-			</li>
 		</ul>
-		<div class="actions flex gap-2">
+		<div class="actions ml-auto flex gap-2">
 			<!-- <UseWallet /> -->
 			{#if $connectedAccount}
-				<span class="text-black flex flex-col items-end bg-[#22221100] p-2 rounded text-sm cursor-default">
+				<span class="connected-info flex flex-col items-end p-2 rounded text-sm cursor-default">
 					{#await getAccountBalance($connectedAccount)}
 						<span class="text-nowrap">0 VOI</span>
 					{:then balance}
@@ -77,12 +76,12 @@
 						{$connectedAccount.slice(0, 3)}...{$connectedAccount.slice(-3)}
 					</span>
 				</span>
-				<button class="btn bg-black hover:bg-[#222205]" on:click={() => walletDisconnect()}>
+				<button class="btn btn-ghost bg-[#00000040] hover:bg-[#00000050] text-primary" on:click={() => walletDisconnect()}>
 					<span class="inline-block h-6 w-6"><MdAccountBalanceWallet /></span>
 					Disconnect
 				</button>
 			{:else}
-				<button class="btn bg-black hover:bg-[#222205]" on:click={() => openModal(ConnectWallet, {})}>
+				<button class="btn btn-ghost bg-[#00000040] hover:bg-[#00000050] text-primary" on:click={() => openModal(ConnectWallet, {})}>
 					<span class="inline-block h-6 w-6"><MdAccountBalanceWallet /></span>
 					Connect Wallet
 				</button>
@@ -94,31 +93,43 @@
 <style>
 	.navbar-wrapper {
 		--height: 100px;
-		width: 100vw;
-		--edge-height: 300px;
+		--edge-height: 0px;
 		--edge-width: 0.2rem;
 		height: calc(var(--height) + var(--edge-height));
-		background: linear-gradient(to bottom, var(--primary-color) var(--height), #333333);
+		background: transparent;
+		transition: background-color 100ms;
+		color: white;
+		width: calc(100vw - 0rem);
 		position: fixed;
 		top: 0;
 		z-index: 1000;
-		clip-path: polygon(
+		/* clip-path: polygon(
 			0 0,
 			100% 0,
 			100% 100%,
 			calc(100% - var(--edge-width)) calc(100% - var(--edge-height)),
 			var(--edge-width) calc(100% - var(--edge-height)),
 			0 100%
-		);
+		); */
 	}
 
-	@media (max-width: 700px) {
+	.navbar-wrapper.scrolled {
+		background-color: #00000025;
+		-webkit-backdrop-filter: blur(0.5em);
+		backdrop-filter: blur(0.5em);
+	}
+
+	.navbar-wrapper.yellow .logo-wrapper a {
+		color: currentColor;
+	}
+
+	@media (max-width: 639px) {
 		:global(html body) {
 			padding-top: 0;
 		}
 		.navbar-wrapper {
 			position: relative;
-			--height: 350px;
+			--height: max-content;
 			--edge-height: 50px;
 		}
 
@@ -127,22 +138,19 @@
 			justify-content: center;
 		}
 		.actions {
-			flex-direction: column;
+			width: 100%;
 			justify-content: center;
-			margin-left: 0 !important;
 		}
 		.actions > span {
 			display: flex;
 			justify-content: center;
-			align-items: center;
+			/* align-items: center; */
 		}
 	}
 
 	.navbar {
 		height: var(--height);
 		overflow: hidden;
-		max-width: 1500px;
-		margin: 0 auto;
 		display: flex;
 		align-items: center;
 		padding: 1rem;
@@ -152,10 +160,6 @@
 
 	.logo-wrapper {
 		width: 2rem;
-	}
-
-	.logo-wrapper a {
-		color: var(--secondary-color);
 	}
 
 	ul {
@@ -172,7 +176,7 @@
 		margin: 0 0rem;
 		width: 5px;
 		height: 5px;
-		border: 2px solid black;
+		border: 2.5px solid currentColor;
 		border-radius: 8px;
 		/* animation: animate 100s linear infinite; */
 	}
@@ -191,14 +195,14 @@
 
 	ul a {
 		text-decoration: none;
-		color: #000000;
+		color: currentColor;
 		font-weight: 400;
 		/* padding: 0.25rem 0.5rem; */
 		transition: 100ms all;
 		font-size: 17px;
 		justify-content: center;
 		align-items: center;
-		opacity: 0.7;
+		/* opacity: 0.7; */
 	}
 
 	ul li {
@@ -206,19 +210,12 @@
 		justify-content: center;
 		align-items: center;
 		padding: 0 0.25rem;
-		background: #ffff66;
+		/* background: #ffff66; */
 		border-radius: 8px;
 		height: 2rem;
 	}
 
-	ul li:hover {
-		background: #f0f066;
-	}
-
-	.actions {
-		margin-left: auto;
-	}
-	.actions button {
-		color: white;
+	ul li:hover a {
+		opacity: 0.5;
 	}
 </style>

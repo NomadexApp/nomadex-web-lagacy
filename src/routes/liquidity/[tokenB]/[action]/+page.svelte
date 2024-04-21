@@ -78,8 +78,14 @@
 	$: poolTokenBBalance = Number($poolArc200Balance) / matchedPool.arc200Asset.unit;
 
 	$: formData = {
-		tokenABalance: tokenA.ticker === arc200Token.ticker ? $userArc200Balance : BigInt($connectedUserState.amount),
-		tokenBBalance: tokenB.ticker === arc200Token.ticker ? $userArc200Balance : $connectedUserState.amount,
+		tokenABalance:
+			tokenA.ticker === arc200Token.ticker
+				? $userArc200Balance
+				: BigInt(Math.max(0, $connectedUserState.amount - (($connectedUserState['min-balance'] ?? 0) + 100_000))),
+		tokenBBalance:
+			tokenB.ticker === arc200Token.ticker
+				? $userArc200Balance
+				: BigInt(Math.max(0, $connectedUserState.amount - (($connectedUserState['min-balance'] ?? 0) + 100_000))),
 	};
 
 	if (tokenA?.ticker === 'VOI' && tokenB?.type === TokenType.ARC200) {
@@ -198,7 +204,9 @@
 	}
 
 	$: maxLptBalanceError = Number(inputTokenLpt) > algosdk.microalgosToAlgos(Number($userLptBalance ?? 0));
-	$: maxBalanceError = Number(inputTokenA) > Math.floor($connectedUserState.amount / tokenA.unit);
+	$: maxBalanceError =
+		Number(inputTokenA) >
+		Math.max(0, $connectedUserState.amount - (($connectedUserState['min-balance'] ?? 0) + 100_000)) / tokenA.unit;
 	$: maxArc200BalanceError =
 		Number(inputTokenB) > Number(convertDecimals($userArc200Balance ?? 0n, tokenB.decimals, 6)) / 1e6;
 

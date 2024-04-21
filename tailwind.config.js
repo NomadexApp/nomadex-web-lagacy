@@ -17,10 +17,9 @@ const theme = {
 	},
 	dark: {
 		'color-scheme': 'dark',
-		'base-100': '#282828',
-		'accent': '#d5d5d5',
-		primary: '#f9f9f9',
-		'primary-content': '#282828',
+		'primary': 'hsl(60 100% 70%)',
+		'primary-content': 'hsl(60 14% 15%)',
+		'secondary': '#222211'
 	},
 };
 

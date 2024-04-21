@@ -63,7 +63,7 @@
 			<button on:click={() => (filter = !filter)}>{filter ? 'Filtered' : 'Unfiltered'}</button>
 			<button on:click={() => voiValue++}>1 VOI = {voiValues[voiValue % voiValues.length]} VIA</button>
 		</div>
-		<br />
+		<div class="br" />
 		<table>
 			<tr class="cursor-pointer">
 				<th>#</th>
